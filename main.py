@@ -1,4 +1,4 @@
-import json
+from http import client
 from fastapi import FastAPI, WebSocket
 import copy
 
@@ -17,29 +17,39 @@ figures = {"circle": "circle", "cross": "cross"}
 
 async def send_game_template_to_clients():
     global game_template
-    if eval_game():
-        print("winner", last_move)
-        print(game_template)
+    try:
+        if eval_game():
+            print("winner", last_move)
+            print(game_template)
 
-        for client_id in connected_clients:
-            websocket = client_sockets[client_id]
-            await websocket.send_json(
-                {
-                    "game_template": game_template,
-                    "is_over": True,
-                    "figure": "cross",
-                    "winner": last_move,
-                }
-            )
-        game_template = initial_template
+            for client_id in connected_clients:
+                websocket = client_sockets[client_id]
+                await websocket.send_json(
+                    {
+                        "game_template": game_template,
+                        "is_over": True,
+                        "figure": "cross",
+                        "winner": last_move,
+                    }
+                )
+            game_template = copy.deepcopy(initial_template)
+            connected_clients.clear()
+            client_sockets.clear()
+        else:
+            for client_id in connected_clients:
+                websocket = client_sockets[client_id]
+                await websocket.send_json(
+                    {
+                        "game_template": game_template,
+                        "is_over": False,
+                        "figure": "cross",
+                    }
+                )
+    except Exception as e:
+        game_template = copy.deepcopy(initial_template)
         connected_clients.clear()
         client_sockets.clear()
-    else:
-        for client_id in connected_clients:
-            websocket = client_sockets[client_id]
-            await websocket.send_json(
-                {"game_template": game_template, "is_over": False, "figure": "cross"}
-            )
+        print("here err")
 
 
 def eval_game() -> bool:
@@ -66,22 +76,30 @@ def eval_game() -> bool:
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global last_move
-    await websocket.accept()
     figure = ""
-    if len(connected_clients) <= 2:
+    await websocket.accept()
+
+    # print(connected_clients)
+    client_id = str(id(websocket))
+    # print(client_id)
+
+    if len(connected_clients) < 2:
         connected_clients.append(str(id(websocket)))
-        client_id = str(id(websocket))
-        print(client_id)
+
         client_sockets[client_id] = websocket
         if len(connected_clients) == 1:
             figure = figures["cross"]
         elif len(connected_clients) == 2:
             figure = figures["circle"]
         await websocket.send_json({figure: "cross"})
+    try:
+        while True:
+            print(websocket.client.host)
+            print(connected_clients)
+            print(client_id)
+            data = await websocket.receive_text()
 
-    while True:
-        data = await websocket.receive_text()
-        if len(connected_clients) == 2:
+            # if len(connected_clients) == 2:
             position = int(data)
             row = (position) // 3
             column = (position) % 3
@@ -96,5 +114,7 @@ async def websocket_endpoint(websocket: WebSocket):
             # game_template_json = json.dumps(game_template)
 
             await send_game_template_to_clients()
+    except Exception as e:
+        print("//**", e)
 
     # print(f"Received message from client {client_id}: {data}"")
