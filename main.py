@@ -1,5 +1,6 @@
 from fastapi import FastAPI, WebSocket
 import copy
+import random
 
 # s
 app = FastAPI()
@@ -15,12 +16,12 @@ game_template = copy.deepcopy(initial_template)
 figures = {"circle": "circle", "cross": "cross"}
 
 
-async def send_game_template_to_clients():
+async def send_game_template_to_clients(figure):
     global game_template
     try:
         if eval_game():
-            print("winner", last_move)
-            print(game_template)
+            # print("winner", last_move)
+            # print(game_template)
 
             for client_id in connected_clients:
                 websocket = client_sockets[client_id]
@@ -42,7 +43,7 @@ async def send_game_template_to_clients():
                     {
                         "game_template": game_template,
                         "is_over": False,
-                        "figure": "cross",
+                        "figure": figure,
                     }
                 )
     except Exception as e:
@@ -80,18 +81,18 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
 
     # print(connected_clients)
-    client_id = str(id(websocket))
+    client_id = websocket.client.host
     # print(client_id)
-
-    if len(connected_clients) < 2:
-        connected_clients.append(str(id(websocket)))
+    #  client_id not in connected_clients and
+    if client_id not in connected_clients and len(connected_clients) < 2:
+        connected_clients.append(client_id)
 
         client_sockets[client_id] = websocket
         if len(connected_clients) == 1:
             figure = figures["cross"]
         elif len(connected_clients) == 2:
             figure = figures["circle"]
-        await websocket.send_json({figure: "cross"})
+        await websocket.send_json({figure: figure})
     try:
         while True:
             print(websocket.client.host)
@@ -106,14 +107,21 @@ async def websocket_endpoint(websocket: WebSocket):
             if client_id == connected_clients[0]:
                 game_template[row][column] = 0
                 last_move = "cross"
+                await client_sockets[connected_clients[0]].send_json({"wait": True})
+                await client_sockets[connected_clients[1]].send_json({"wait": False})
+                # await connected_clients[0].send_json({"wait": True})
+                # await websocket.send_json({"wait": "cross"})
 
             elif client_id == connected_clients[1]:
                 game_template[row][column] = 1
                 last_move = "circle"
+                await client_sockets[connected_clients[1]].send_json({"wait": True})
+                await client_sockets[connected_clients[0]].send_json({"wait": False})
+                # await websocket.send_json({"last": "circle"})
 
             # game_template_json = json.dumps(game_template)
-
-            await send_game_template_to_clients()
+            # print(last_move, "last move")
+            await send_game_template_to_clients(last_move)
     except Exception as e:
         print("//**", e)
 
