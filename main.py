@@ -118,3 +118,8 @@ async def websocket_endpoint(websocket: WebSocket):
         print("//**", e)
 
     # print(f"Received message from client {client_id}: {data}"")
+
+
+@app.get("/test")
+def testig():
+    return {"jaja", "jaja"}
