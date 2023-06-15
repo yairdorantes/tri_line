@@ -41,6 +41,7 @@ const TriLine = ({ sendMessage, lastMessage }) => {
     ["", "", ""],
     ["", "", ""],
   ]);
+  // sk
 
   const handleSelect = (e) => {
     const id = parseInt(e.currentTarget.getAttribute("data-id"));
