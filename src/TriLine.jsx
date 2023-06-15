@@ -3,7 +3,7 @@ import toast, { Toaster } from "react-hot-toast";
 
 const cross = (
   <svg
-    className="w-10 h-10"
+    className="w-10 h-10 text-white"
     viewBox="0 0 16 16"
     fill="currentColor"
     height="1em"
@@ -18,7 +18,7 @@ const cross = (
 );
 const circle = (
   <svg
-    className="w-10 h-10"
+    className="w-10 h-10 text-white"
     viewBox="0 0 512 512"
     fill="currentColor"
     height="1em"
@@ -32,10 +32,12 @@ const figures = {
   cross,
 };
 
-const TriLine = ({ sendMessage, lastMessage }) => {
-  const [figure, setFigure] = useState(figures.cross);
+const TriLine = ({ sendMessage, lastMessage, connectionStatus }) => {
+  const [figure, setFigure] = useState("x");
   const [isOver, setIsOver] = useState(false);
   const [data, setData] = useState([]);
+  const [dots, setDots] = useState("");
+  const [wait, setWait] = useState(false);
   const [gameTemplate, setGameTemplate] = useState([
     ["", "", ""],
     ["", "", ""],
@@ -51,8 +53,18 @@ const TriLine = ({ sendMessage, lastMessage }) => {
   useEffect(() => {
     if (lastMessage) {
       if (lastMessage.data) {
-        console.log(lastMessage.data);
         const data_json = JSON.parse(lastMessage.data);
+        console.log(data_json);
+        if (data_json.wait !== undefined) {
+          setWait(data_json.wait);
+          console.log(data_json.wait);
+          console.log("here");
+        }
+        data_json.cross
+          ? setFigure("X")
+          : data_json.circle
+          ? setFigure("O")
+          : "";
         setData(data_json);
         setIsOver(data_json.is_over);
         data_json.game_template && setGameTemplate(data_json.game_template);
@@ -70,9 +82,44 @@ const TriLine = ({ sendMessage, lastMessage }) => {
     }
   }, [isOver]);
 
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (dots.length < 3) {
+        setDots((prevDots) => prevDots + ".");
+      } else {
+        setDots("");
+      }
+    }, 1000);
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [dots]);
+
   return (
     <div>
       <Toaster />
+
+      <div>
+        {connectionStatus === "Open" ? (
+          <div className="badge badge-success">Connected</div>
+        ) : (
+          <div className="badge badge-error">Disconnected</div>
+        )}
+      </div>
+      <div>
+        You&apos;are{" "}
+        <span className="font-bold text-white text-lg">{figure}</span>{" "}
+      </div>
+      <div>
+        {wait ? (
+          <>
+            <div>Opponent&apos;s Turn </div>
+            <span className="inline-block min-w-[12px] ">{dots}</span>
+          </>
+        ) : (
+          <div>Your turn</div>
+        )}
+      </div>
       {/* <div>Terminado?: {isOver && isOver.toString()}</div> */}
       <div className="grid grid-cols-3 w-[370px] h-[370px] mx-auto">
         {gameTemplate &&
@@ -81,7 +128,7 @@ const TriLine = ({ sendMessage, lastMessage }) => {
               <div
                 data-id={rowIndex * row.length + columnIndex}
                 key={columnIndex}
-                onClick={!isOver ? handleSelect : undefined}
+                onClick={!isOver && !wait ? handleSelect : undefined}
                 className={`flexi ${columnIndex !== 2 ? "border-r-2" : ""} ${
                   rowIndex !== 2 ? "border-b-2" : ""
                 }`}

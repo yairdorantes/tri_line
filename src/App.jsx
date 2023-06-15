@@ -6,9 +6,10 @@ import TriLine from "./TriLine";
 
 function App() {
   //Public API that will echo messages sent to it back to the client
-  const [socketUrl, setSocketUrl] = useState(
-    "wss://triline-production.up.railway.app/ws"
-  );
+  // const [socketUrl, setSocketUrl] = useState(
+  //   "wss://triline-production.up.railway.app/ws"
+  // );
+  const [socketUrl, setSocketUrl] = useState("ws://127.0.0.1:8000/ws");
   const [messageHistory, setMessageHistory] = useState([]);
 
   const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
@@ -22,6 +23,7 @@ function App() {
 
   const handleClickChangeSocketUrl = useCallback(
     () => setSocketUrl("ws://127.0.0.1:8000/ws"),
+    // () => setSocketUrl("ws://127.0.0.1:8000/ws"),
     []
   );
 
@@ -37,7 +39,11 @@ function App() {
 
   return (
     <div>
-      <TriLine sendMessage={sendMessage} lastMessage={lastMessage} />
+      <TriLine
+        sendMessage={sendMessage}
+        connectionStatus={connectionStatus}
+        lastMessage={lastMessage}
+      />
       {/* <button onClick={handleClickChangeSocketUrl}>
         Click Me to change Socket Url
       </button>
@@ -54,6 +60,7 @@ function App() {
           <span key={idx}>{message ? message.data : null}</span>
         ))}
       </ul> */}
+      {/* <span>The WebSocket is currently {connectionStatus}</span> */}
     </div>
   );
 }
