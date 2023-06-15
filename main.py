@@ -1,4 +1,3 @@
-from http import client
 from fastapi import FastAPI, WebSocket
 import copy
 
