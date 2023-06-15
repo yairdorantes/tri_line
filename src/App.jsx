@@ -7,7 +7,7 @@ import TriLine from "./TriLine";
 function App() {
   //Public API that will echo messages sent to it back to the client
   const [socketUrl, setSocketUrl] = useState(
-    "ws://triline-production.up.railway.app/ws"
+    "wss://triline-production.up.railway.app/ws"
   );
   const [messageHistory, setMessageHistory] = useState([]);
 
